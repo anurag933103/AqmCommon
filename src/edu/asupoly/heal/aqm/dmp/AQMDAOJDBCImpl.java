@@ -144,15 +144,16 @@ public class AQMDAOJDBCImpl implements IAQMDAO {
 
 				String dateTime = (String) jsonobj.get("dateTime");
 				Date d = new SimpleDateFormat("EEE MMM dd HH:mm:ss zzz yyyy", Locale.US).parse(dateTime);
+				Timestamp t = new java.sql.Timestamp(d.getTime()); //, AQMDAOFactory.AQM_CALENDAR);
 
 				String type = (String)jsonobj.get("type");
-				importCommonReading(jsonobj, psCommon, d);
+				importCommonReading(jsonobj, psCommon, t);
 				if (type != null && type.equals("sensordrone")) {
 					log.info("data type = "+type);
-					importSensordroneReading(jsonobj, psSensordrone, d);
+					importSensordroneReading(jsonobj, psSensordrone, t);
 				} else if (type != null && type.equals("dylos") ) {
 					log.info("data type = "+type);
-					importDylosReading(jsonobj, psDylos, d);
+					importDylosReading(jsonobj, psDylos, t);
 				}
 			}
 			c.commit();
@@ -179,11 +180,11 @@ public class AQMDAOJDBCImpl implements IAQMDAO {
 		}
 	}
 
-	private void importCommonReading(JSONObject jsonobj, PreparedStatement ps1, Date d) throws Exception{
+	private void importCommonReading(JSONObject jsonobj, PreparedStatement ps1, Timestamp d) throws Exception{
 		try {
+			System.out.println(jsonobj.toString());
 			ps1.setString(1, (String) jsonobj.get("deviceId"));
-			ps1.setTimestamp(2, new java.sql.Timestamp(d.getTime()), AQMDAOFactory.AQM_CALENDAR);
-
+			ps1.setTimestamp(2, d);
 			ps1.setDouble(3, (Double) jsonobj.get("geoLatitude"));
 			ps1.setDouble(4, (Double) jsonobj.get("geoLongitude"));
 			ps1.setString(5, (String) jsonobj.get("geoMethod"));
@@ -191,6 +192,7 @@ public class AQMDAOJDBCImpl implements IAQMDAO {
 			ps1.executeUpdate();
 			ps1.clearParameters();
 		} catch (Throwable t) {
+			t.printStackTrace();
 			throw new Exception("Could not set PS for AQM Common attributes");
 		}
 	}
@@ -198,10 +200,10 @@ public class AQMDAOJDBCImpl implements IAQMDAO {
 	// [{"deviceId":"aqm1","userId":"patient1","dateTime":"Sat Mar 08 22:24:10 MST 2014",
 	// "smallParticle":76,"largeParticle":16,
 	// "geoLatitude":33.3099177,"geoLongitude":-111.6726974,"geoMethod":"manual"},{...},...]
-	private void importDylosReading(JSONObject jsonobj, PreparedStatement ps2, Date d) throws Exception {
+	private void importDylosReading(JSONObject jsonobj, PreparedStatement ps2, Timestamp d) throws Exception {
 		try {
 			ps2.setString(1, (String) jsonobj.get("deviceId"));
-			ps2.setTimestamp(2, new java.sql.Timestamp(d.getTime()), AQMDAOFactory.AQM_CALENDAR);
+			ps2.setTimestamp(2, d);
 			ps2.setInt(3, ((Long) jsonobj.get("smallParticle")).intValue());
 			ps2.setInt(4, ((Long) jsonobj.get("largeParticle")).intValue());
 			ps2.setString(5, (String) jsonobj.get("userId"));
@@ -222,11 +224,11 @@ public class AQMDAOJDBCImpl implements IAQMDAO {
 	// "co2DeviceID":"UNKNOWN","coData":-2,"co2Data":-1,
 	// "presureData":96128,"tempData":27,"humidityData":42,
 	// "geoLatitude":33.2830173,"geoLongitude":-111.7627723,"geoMethod":"Network"}
-	public void importSensordroneReading(JSONObject jsonobj, PreparedStatement ps2, Date d) throws Exception {
+	public void importSensordroneReading(JSONObject jsonobj, PreparedStatement ps2, Timestamp d) throws Exception {
 		try {
 			ps2.setString(1, (String) jsonobj.get("deviceId"));
-			ps2.setTimestamp(2, new java.sql.Timestamp(d.getTime()), AQMDAOFactory.AQM_CALENDAR);
-			ps2.setInt(3, ((Long) jsonobj.get("presureData")).intValue());
+			ps2.setTimestamp(2, d);
+			ps2.setInt(3, ((Long) jsonobj.get("pressureData")).intValue());
 			ps2.setInt(4, ((Long) jsonobj.get("tempData")).intValue());
 			ps2.setInt(5, ((Long) jsonobj.get("coData")).intValue());
 			ps2.setInt(6, ((Long) jsonobj.get("humidityData")).intValue());
@@ -273,6 +275,7 @@ public class AQMDAOJDBCImpl implements IAQMDAO {
 				if (ps != null) ps.close();
 				if (c != null) c.close();
 			} catch (SQLException se2) {
+			    se2.printStackTrace();
 				log.log(Level.SEVERE, "Server pushed stacktrace on response: " + se2);
 			}
 		}
